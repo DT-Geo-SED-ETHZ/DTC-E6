@@ -14,7 +14,7 @@ docker pull  ghcr.io/sed-eew/finder
 # docker stop finder && docker rm finder && docker run -d --add-host=host.docker.internal:host-gateway -p 9878:22 -v finder:/home/sysop --hostname FinDer-in-a-Docker --name finder ghcr.io/sed-eew/finder:master
 ```
 
-## Make aliases
+## Setup aliases
 
 ```bash
 docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp alias create scfdalpine scfinder
@@ -41,6 +41,49 @@ docker exec -u 0 -it finder chown sysop:sysop /home/sysop/.seiscomp/global.cfg
 ```
 
 ## Restart scfinder aliases in container
+
 ```bash
 docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp restart
+```
+
+## Update inventory
+```bash
+
+# Metadata INGV (Z3 removed)
+curl http://webservices.ingv.it/fdsnws/station/1/query"?format=xml&level=response" > webservices.ingv.it.xml 
+/opt/seiscomp/bin/seiscomp exec fdsnxml2inv webservices.ingv.it.xml > webservices.ingv.it.scml   
+/opt/seiscomp/bin/seiscomp exec invextr --rm --chans "Z3.*" webservices.ingv.it.scml > webservices.ingv.it.filt.scml
+ 
+# Metadata SED (GU removed)
+/opt/seiscomp/bin/seiscomp exec scxmldump -d "postgresql://seiscomp3:birkidollar5s@eq20d.ethz.ch:5432/sc3dbd?column_prefix=m_"  --plugins dbpostgresql -I > arclink.ethz.ch.scml
+/opt/seiscomp/bin/seiscomp exec invextr --rm --chans "GU.*" arclink.ethz.ch.scml >  arclink.ethz.ch.filt.scml
+
+# Merging SEd and INGV
+scinv merge arclink.ethz.ch.filt.scml webservices.ingv.it.filt.scml -o /opt/seiscomp/etc/inventory/arclink.ethz.ch.noGU-merged-webservices.ingv.it.noZ3.xml
+ 
+# Update seiscomp
+seiscomp update-config
+
+# Find missing channels (assuming to day is 2024/01/05)
+slinktool -Q dt-geo-seedlink.ethz.ch:18000 |grep 2024/01/05|sed 's/     /  _  /'|while read N S L C T;do curl http://localhost:8080/fdsnws/station/1/query"?network=$N&station=$S&location=${L/_/}&channel=$C&level=channel" 2>/dev/null |grep $S >/dev/null|| echo missing $N $S $L $C;done #|awk '{print $2"."$3}'|sort -u
+```
+
+On 2024/01/05, the following are still missing:
+```bash
+IV.ACATE
+IV.ASCOL
+IV.CROCE
+IV.ISPIC
+IV.LEVAN
+IV.LIBRI
+IV.MALA0
+IV.MALA2
+IV.MALA3
+IV.MALA4
+IV.MALA5
+IV.MARIO
+IV.ROSPO
+IV.SCIAC
+IV.SICLA
+IV.SOLUN
 ```
