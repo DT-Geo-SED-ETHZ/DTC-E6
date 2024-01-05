@@ -65,25 +65,24 @@ scinv merge arclink.ethz.ch.filt.scml webservices.ingv.it.filt.scml -o /opt/seis
 seiscomp update-config
 
 # Find missing channels (assuming to day is 2024/01/05)
-slinktool -Q dt-geo-seedlink.ethz.ch:18000 |grep 2024/01/05|sed 's/     /  _  /'|while read N S L C T;do curl http://localhost:8080/fdsnws/station/1/query"?network=$N&station=$S&location=${L/_/}&channel=$C&level=channel" 2>/dev/null |grep $S >/dev/null|| echo missing $N $S $L $C;done #|awk '{print $2"."$3}'|sort -u
+slinktool -Q dt-geo-seedlink.ethz.ch:18000 |grep 2024/01/05|sed 's/    /  _  /'|while read N S L C T;do curl http://localhost:8080/fdsnws/station/1/query"?network=$N&station=$S&location=${L/_/}&channel=$C&level=channel" 2>/dev/null |grep $S >/dev/null|| echo missing $N $S $L $C;done #|awk '{print $2"."$3}'|sort -u
 ```
 
 On 2024/01/05, the following are still missing:
 ```bash
-IV.ACATE
-IV.ASCOL
-IV.CROCE
-IV.ISPIC
-IV.LEVAN
-IV.LIBRI
-IV.MALA0
-IV.MALA2
-IV.MALA3
-IV.MALA4
-IV.MALA5
-IV.MARIO
-IV.ROSPO
-IV.SCIAC
-IV.SICLA
-IV.SOLUN
+missing IV MALA5 _ EHE
+missing IV MALA5 _ EHN
+missing IV MALA5 _ EHZ
+missing IV MALA2 _ EHE
+missing IV MALA2 _ EHN
+missing IV MALA2 _ EHZ
+missing IV MALA4 _ EHE
+missing IV MALA4 _ EHN
+missing IV MALA4 _ EHZ
+missing IV MALA0 _ EHE
+missing IV MALA0 _ EHN
+missing IV MALA0 _ EHZ
+missing IV MALA3 _ EHE
+missing IV MALA3 _ EHN
+missing IV MALA3 _ EHZ
 ```
