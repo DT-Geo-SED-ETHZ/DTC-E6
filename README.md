@@ -1,10 +1,125 @@
 # FinDer, scfinder and FinDer-in-a-Docker config for DT-Geo
 
+## Blacklist HH with colocated HN
+```bash
+NOW=$( date +%s )
+function date2s () {  date --date="$1 UTC"  +%s ;} 
+
+for U in dt-geo-seedlink.ethz.ch:18000 eq20b.ethz.ch:18000 ;
+do 
+  slinktool -Q $U ;
+done|sed 's/    / __ /'|while read N S L C Q D1 T1 T D2 T2; 
+do 
+   DELAY=$(( $NOW -  $( date2s "$D2 $T2" ))); 
+   if [[ $DELAY -lt 1000 ]] ; 
+   then 
+    echo  $N $S $L $C $Q $D1 $T1 $T $D2 $T2 $DELAY ;
+   fi ;
+done > slinktool_with_delay.log
+grep -i -e " HNZ " -e " HGZ "  slinktool_with_delay.log |while read N S L T ;do grep "^$N $S .* HHZ " slinktool_with_delay.log >/dev/null&& echo "$N.$S.*.HH*";done|paste -s -d ',' -
+```
+
+## Miniseed-based real-time simulation
+
+Alias the msrtsimul docker command (once per session):
+```bash
+
+
+msrtsimuld () { 
+  docker exec -u sysop     msrtsimuld sh -c 'rm /home/sysop/seiscomp/etc/inventory/*.xml'
+  docker exec -u sysop -it finder     sed -i 's/^#recordstream = slink:\/\/host.docker.internal:18000/recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
+  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly scfdforela  scfdalpine
+  docker exec -u 0     -it msrtsimuld main $@ ; 
+  docker exec -u sysop -it finder     sed -i 's/^recordstream = slink:\/\/host.docker.internal:18000/#recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
+  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly scfdforela  scfdalpine
+  }           
+
+msrtsimuld () { 
+  docker exec -u sysop     msrtsimuld sh -c 'rm /home/sysop/seiscomp/etc/inventory/*.xml'
+  docker exec -u sysop -it finder     sed -i 's/^#recordstream = slink:\/\/host.docker.internal:18000/recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
+  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly 
+  docker exec -u 0     -it msrtsimuld main $@ ; 
+  docker exec -u sysop -it finder     sed -i 's/^recordstream = slink:\/\/host.docker.internal:18000/#recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
+  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly 
+  } 
+```
+
+Run any of the simulations:
+```bash
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2009-04-06T01-32-40.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2009-04-06T01-32-40.xml,sc3
+
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-20T02-03-50.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-20T02-03-50.xml,sc3
+
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-29T07-00-02.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-29T07-00-02.xml,sc3
+
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2016-08-24T01-36-32.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2016-08-24T01-36-32.xml,sc3
+
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-26T19-18-07.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-26T19-18-07.xml,sc3
+
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-30T06-40-17.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-30T06-40-17.xml,sc3
+
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2017-01-18T10-14-09.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2017-01-18T10-14-09.xml,sc3
+
+msrtsimuld \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2022-11-09T06-07-25.mseed \
+  sysop@host.docker.internal:/home/sysop/playback/test1/2022-11-09T06-07-25.xml,sc3
+```
+
+See the produced event(s) with simulated data access:
+```bash
+scolv -I slink://localhost:18000
+```
+
+Consider setting simulated events as "Not existing"
+
+## Playback
+
+Disable all scfinder aliases:
+```bash
+docker exec -u sysop  -it scpbd /opt/seiscomp/bin/seiscomp disable scfdalpine scfdforela scfditaly
+```
+
+Enable the appropriate alias:
+```bash
+docker exec -u sysop  -it scpbd /opt/seiscomp/bin/seiscomp enable scfditaly
+```
+
+Adjust the configuration:
+```bash
+ssh -X -p 222 sysop@localhost /opt/seiscomp/bin/seiscomp exec scconfig
+```
+
+Playback mseed data "playback/test1/2016-10-30T06-40-17.mseed512"  with metadata inventory "playback/test1/inv.xml" in format "sc3":
+```bash
+docker exec -u 0 -it scpbd main $USER@host.docker.internal:$(pwd)/playback/test1/2016-10-30T06-40-17.mseed512 $USER@host.docker.internal:$(pwd)/playback/test1/2016-10-30T06-40-17.xml,sc3 
+```
+
+Save the results:
+```bash
+docker cp scpbd:/home/sysop/event_db.sqlite playback/test1/2016-10-30T06-40-17.sqlite
+```
+
+More info: https://github.com/FMassin/scpbd
+
 ## Get FinDer-in-a-Docker (assuming granted access)
 
 ```bash
 docker login ghcr.io/sed-eew/finder
-docker pull  ghcr.io/sed-eew/finder 
+docker pull  ghcr.io/sed-eew/finder:master 
 ```
 
 ## Update existing container (re-use same docker volume for permanent logs)
@@ -27,24 +142,26 @@ docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp enable scfdalpine scf
 ## Update SeisComP and FinDer config
 
 ```bash
-docker cp /opt/seiscomp/etc/FinDer-config/ finder:/opt/seiscomp/etc/FinDer-config/
+docker cp  finder:/home/sysop/.seiscomp/FinDer-config/ /home/sysop/.seiscomp/FinDer-config/
+docker cp  finder:/home/sysop/.seiscomp/scfd*.cfg /home/sysop/.seiscomp/
 
-docker cp /opt/seiscomp/etc/global.cfg     finder:/opt/seiscomp/etc/
-docker cp /opt/seiscomp/etc/scfdforela.cfg finder:/opt/seiscomp/etc/
-docker cp /opt/seiscomp/etc/scfdalpine.cfg finder:/opt/seiscomp/etc/
-docker cp /opt/seiscomp/etc/scfditaly.cfg  finder:/opt/seiscomp/etc/
+# UPDATE CONFIG IN /home/sysop/.seiscomp/ AND THEN:
 
-docker cp /opt/seiscomp/etc/global.FinDer-in-a-Docker.cfg  finder:/home/sysop/.seiscomp/global.cfg
+docker cp /home/sysop/.seiscomp/FinDer-config/ finder:/home/sysop/.seiscomp/FinDer-config/
 
-docker exec -u 0 -it finder chown sysop:sysop /opt/seiscomp -R
-docker exec -u 0 -it finder chown sysop:sysop /home/sysop/.seiscomp/global.cfg
+docker cp /home/sysop/.seiscomp/scfdforela.cfg finder:/home/sysop/.seiscomp/
+docker cp /home/sysop/.seiscomp/scfdalpine.cfg finder:/home/sysop/.seiscomp/
+docker cp /home/sysop/.seiscomp/scfditaly.cfg  finder:/home/sysop/.seiscomp/
+
+docker exec -u 0 -it finder chown sysop:sysop /home/sysop/.seiscomp/ -R
 ```
 
 ## Restart scfinder aliases in container
 
 ```bash
-docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp restart
+docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp restart scfdalpine scfditaly scfdforela
 ```
+Ignore or stop scmaster in the docker container.
 
 ## Update inventory
 ```bash
