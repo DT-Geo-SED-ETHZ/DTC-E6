@@ -1,5 +1,22 @@
 # FinDer, scfinder and FinDer-in-a-Docker config for DT-Geo
 
+## Build and run a standalone FinDer docker for DT-Geo
+
+```
+docker build -f "Dockerfile" -t dtgeofinder:master "."
+
+docker stop dtgeofinder 
+
+docker rm dtgeofinder 
+
+docker run -d \
+    -p 9878:22 \
+    -v dtgeofinder:/home/sysop \
+    --hostname FinDer-for-DTGeo-Docker \
+    --name dtgeofinder \
+    dtgeofinder:master
+```
+
 ## Blacklist HH with colocated HN
 ```bash
 NOW=$( date +%s )
@@ -114,6 +131,7 @@ docker cp scpbd:/home/sysop/event_db.sqlite playback/test1/2016-10-30T06-40-17.s
 ```
 
 More info: https://github.com/FMassin/scpbd
+
 
 ## Get FinDer-in-a-Docker (assuming granted access)
 
