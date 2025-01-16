@@ -17,6 +17,15 @@ docker run -d \
     dtgeofinder:master
 ```
 
+## Interactive shell - shakemap test
+```bash
+docker exec -it dtgeofinder sh
+
+cd shakemap
+
+pytest
+```
+
 ## Blacklist HH with colocated HN
 ```bash
 NOW=$( date +%s )
