@@ -12,23 +12,33 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir $WORK_DIR/python39 \
     && cd $WORK_DIR/python39 \
-    && wget https://www.python.org/ftp/python/3.9.9/Python-3.9.9.tgz \
-    && tar xvf Python-3.9.9.tgz \
-    && cd Python-3.9.9 \
+    && wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tgz \
+    && tar xvf Python-3.9.0.tgz \
+    && cd Python-3.9.0 \
     && ./configure --enable-optimizations \
     && make -j$(nproc) \
     && make altinstall \
-    && cd .. && rm -rf Python-3.9.9*
+    && cd .. && rm -rf Python-3.9.0*
 
 # Install pip using ensurepip and install setuptools for pip install -e
 RUN python3.9 -m ensurepip --upgrade \
     && python3.9 -m pip install --upgrade pip \
-    && python3.9 -m pip install --upgrade setuptools
+    && python3.9 -m pip install --upgrade setuptools \
+    && python3.9 -m pip install utils
 
+# actual installation of shakemap
 RUN apt-get install -y curl
 RUN git clone https://github.com/DOI-USGS/ghsc-esi-shakemap.git $WORK_DIR/shakemap \
     && cd $WORK_DIR/shakemap \
     && python3.9 -m pip install -e .
+ 
+# download slab data etc. into data folder
+RUN cd ~ \
+    && mkdir -p sm_data \
+    && strec_cfg update --datafolder sm_data --slab --gcmt
+
+# setup shakemap profile
+RUN sm_profile -c default -a
 
 # get pyfinder to wrap FinDer in python
 RUN git clone https://github.com/sceylan/pyfinder.git $WORK_DIR/pyfinder

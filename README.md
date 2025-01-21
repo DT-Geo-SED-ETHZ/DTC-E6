@@ -19,7 +19,7 @@ docker run -d \
 
 ## Interactive shell - shakemap test
 ```bash
-docker exec -it dtgeofinder sh
+docker exec -it dtgeofinder bash
 
 cd shakemap
 
