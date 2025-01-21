@@ -12,13 +12,13 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir $WORK_DIR/python39 \
     && cd $WORK_DIR/python39 \
-    && wget https://www.python.org/ftp/python/3.9.0/Python-3.9.0.tgz \
-    && tar xvf Python-3.9.0.tgz \
-    && cd Python-3.9.0 \
+    && wget https://www.python.org/ftp/python/3.9.9/Python-3.9.9.tgz \
+    && tar xvf Python-3.9.9.tgz \
+    && cd Python-3.9.9 \
     && ./configure --enable-optimizations \
     && make -j$(nproc) \
     && make altinstall \
-    && cd .. && rm -rf Python-3.9.0*
+    && cd .. && rm -rf Python-3.9.9*
 
 # Install pip using ensurepip and install setuptools for pip install -e
 RUN python3.9 -m ensurepip --upgrade \
