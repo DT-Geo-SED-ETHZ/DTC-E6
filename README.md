@@ -20,10 +20,11 @@ docker run -d \
 ## Interactive shell - shakemap test
 ```bash
 docker exec -it dtgeofinder bash
-
 cd shakemap
 
-pytest
+sm_create ci3144585 -e ci 1994-01-17T12:30:55 -118.546 34.211 19 6.6 "Northridge, California" -n
+shake ci3144585 select
+shake ci3144585 assemble
 ```
 
 ## Blacklist HH with colocated HN
