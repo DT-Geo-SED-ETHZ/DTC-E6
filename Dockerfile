@@ -35,7 +35,7 @@ RUN git clone https://github.com/DOI-USGS/ghsc-esi-shakemap.git $WORK_DIR/shakem
 # download slab data etc. into data folder
 RUN cd ~ \
     && mkdir -p sm_data \
-    && strec_cfg update --datafolder sm_data --slab --gcmt
+    && strec_cfg update --datafolder sm_data --slab  # --gcmt
 
 # setup shakemap profile
 RUN sm_profile -c default -a
