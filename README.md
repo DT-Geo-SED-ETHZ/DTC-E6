@@ -30,11 +30,13 @@ shake ci3144585 assemble
 ## Connection to ADACloud @ CINECA for DT-GEO execution of workflow
 If you do not already have it create an account at userdb.hpc.cineca.it and write mail to johannes.kemper@eaps.ethz.ch.
 Login to the ADACloud (adacloud.hpc.cineca.it) and start the respective virtual machine (VM) called DTC-E6.
-Connect via ssh to this machine (IP address is in the ADACloud dashboard - currently 131.175.206.100) with standard user "ubuntu".
+You might need to update the private ssh-key for connection. 
+Connect via ssh to this machine (IP address is in the ADACloud dashboard - currently 131.175.206.100) with standard user "ubuntu", as the VM OS is the latest available ubuntu:
 ```bash
 ssh ubuntu@131.175.206.100
 ```
-Docker should be installed and ready to use and you can git clone this repository and start building. 
+Docker should be installed and ready to use. 
+If you want to update the Dockerfile that has been used to build the dtgeofinder docker in the VM you can git clone this repository and start building. 
 
 ## Blacklist HH with colocated HN
 ```bash
