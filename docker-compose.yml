@@ -1,0 +1,11 @@
+services:
+  dtgeofinder:
+    image: dtgeofinder:master
+    container_name: dtgeofinder
+    user: "sysop"
+    working_dir: /home/sysop
+    volumes:
+      - ./host_shared:/home/sysop/host_shared
+      - ./host_shared/shakemap_out:/home/sysop/.seiscomp/log/shakemaps
+    command: ["/bin/bash","-lc","chown -R sysop:sysop /home/sysop/.seiscomp /home/sysop/host_shared || true; su - sysop -c 'bash /home/sysop/host_shared/post_start_setup.sh && tail -f /dev/null'"]
+    restart: unless-stopped

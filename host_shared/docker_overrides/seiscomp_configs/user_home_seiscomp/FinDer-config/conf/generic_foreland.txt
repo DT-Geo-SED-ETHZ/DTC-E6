@@ -1,0 +1,10 @@
+TEMPLATE_SET_NAME   symmetric_crustal
+TEMPLATE_TYPE       GENERIC
+TEMPLATE_DIRECTORY  /home/sysop/.seiscomp/FinDer-config/conf/Templates_PGA_swiss_EF2013foreland	# <string> [local directory] for generic templates  
+D_KM                5							# <double> delta km of template grid (same for both x and y)
+D_DEG               5							# <double> delta degrees in strike search
+MIN_DEG             0.0							# <double> minimum strike angle to search over
+MAX_DEG             175.0						# <double> maximum strike angle to search over
+MIN_LENGTH          0.0							# <double> minimum rupture length to search over
+MAX_LENGTH          2000.0						# <double> maximum rupture length to search over
+TEMPLATE_INFO_FILE  template_info.txt					# <string> file in TEMPLATE_DIRECTORY listing template files
