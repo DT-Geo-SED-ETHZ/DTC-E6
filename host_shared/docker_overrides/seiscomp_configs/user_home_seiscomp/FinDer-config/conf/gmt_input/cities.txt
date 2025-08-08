@@ -1,0 +1,51 @@
+-70.667 -33.45 Santiago
+-71.254 -29.908 La Serena 
+-73.05 -36.833 Conception
+-71.667 -35.433 Talca
+-72.35 -37.467 Los Angeles
+-71.09 -31.37 Illapel
+#-71.344 -29.953 11 0 0 2 Coquimbo
+-71.5416 -33.0333 Vina del Mar
+-71.2280 -32.4519 La Ligua
+9.3774 47.423 St. Gallen
+7.44743 46.948 Bern
+7.247 47.137 Biel
+8.5422 47.371 Zurich
+7.587 47.558 Basel
+6.634 46.519 Lausanne
+-122.4167 37.7833 San Francisco
+-118.243 34.052 Los Angeles
+-116.876 33.9255 Banning
+-118.10 34.581 Palmdale
+-117.566 33.875 Corona
+-119.182 34.191 Oxnard 
+139.774 35.683 Tokyo
+130.707906 32.8 Kumamoto
+130.4 33.59 Fukuoka
+140.869 38.268 Sendai
+130.557 31.596 Kagoshima
+129.287 34.202 Tsushima 
+130.833 33.833 Kitakyushu
+131.664 32.582 Nobeoka
+12.388 43.111 Perugia
+#12.86 42.402 Rieti
+#13.092 42.792 Norcia
+#13.289 42.628 Amatrice
+-86.270 12.1463 Managua
+89.183 13.683 San Salvador
+-87.217 14.1 Tegucigalpa
+12.483 41.883 Rome
+9.186 45.462 Milano
+7.7 45.07 Turino
+8.93 44.417 Genua
+11.34 44.51 Bolognia
+11.25 43.783 Firenze
+12.46 43.938 San Marino
+14.25 40.833 Napoli
+16.87 41.133 Bari
+13.361 38.116 Palermo
+15.087 37.5025 Catania
+19.818 41.3275 Tirana
+15.978 45.810 Zagreb
+23.728 37.978 Athens
+12.336 45.438 Venice
