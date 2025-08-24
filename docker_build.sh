@@ -37,7 +37,7 @@
 #   - If buildx is needed but not available, the script will exit with an error.
 #
 # =============================================================================================
-# This is a comment used for Mac OS on Silicon chip
+# This was the command line used for Mac OS on Silicon chip on my laptop
 # docker buildx build --platform linux/amd64 -f Dockerfile.dtgeo -t dtgeofinder:master --load .
 # =============================================================================================
 set -Eeuo pipefail
