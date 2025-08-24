@@ -1,0 +1,114 @@
+# FROM ghcr.io/sed-eew/finder:master
+FROM ghcr.io/sceylan/finder-base:gmt5
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    WORK_DIR=/usr/local/src \
+    INSTALL_PREFIX=/opt/seiscomp \
+    INSTALL_DIR=/opt/seiscomp \
+    TAG=6.7.3 \
+    REPO_PATH=https://github.com/SeisComP
+
+ENV D="-DSC_GLOBAL_GUI=OFF -DSC_DOC_GENERATE=OFF -DSC_DOC_GENERATE_HTML=OFF -DSC_DOC_GENERATE_MAN=OFF -DSC_TRUNK_DB_MYSQL=ON -DSC_TRUNK_DB_POSTGRESQL=ON -DSC_TRUNK_DB_SQLITE3=ON -DFinDer_INCLUDE_DIR=/usr/local/include/finder -DFinDer_LIBRARY=/usr/local/lib/libFinder.a -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}"
+
+# Skipping additional apt-get installs on the frozen Buster base.
+# git/wget/python3-pip are already present; we will install Python 3.9 and needed pip packages below.
+
+RUN mkdir $WORK_DIR/python39 \
+    && cd $WORK_DIR/python39 \
+    && wget https://www.python.org/ftp/python/3.9.9/Python-3.9.9.tgz \
+    && tar xvf Python-3.9.9.tgz \
+    && cd Python-3.9.9 \
+    && ./configure \
+    && make -j$(nproc) \
+    && make altinstall \
+    && cd .. && rm -rf Python-3.9.9*
+
+# Install pip using ensurepip and install setuptools for pip install -e
+RUN python3.9 -m ensurepip --upgrade \
+    && python3.9 -m pip install --upgrade pip setuptools wheel \
+    && python3.9 -m pip install --no-cache-dir utils m2r 'mistune==0.8.4'
+
+# actual installation of shakemap
+RUN git clone --depth 1 https://github.com/DOI-USGS/ghsc-esi-shakemap.git $WORK_DIR/shakemap \
+    && cd $WORK_DIR/shakemap \
+    && python3.9 -m pip install -e .
+
+
+# Rebuild SeisComp with seedlink added to existing installation from
+# the base image
+RUN echo "Cloning base repository into $WORK_DIR/seiscomp" \
+    && sed -ri 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list \
+    && sed -ri '/security\.debian\.org/d' /etc/apt/sources.list \
+    && printf 'Acquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99no-check-valid \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        cmake pkg-config libxml2-dev flex bison libfl-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/src/seiscomp \
+    && git clone --branch $TAG $REPO_PATH/seiscomp.git $WORK_DIR/seiscomp \
+    && echo "Cloning base components" \
+    && cd $WORK_DIR/seiscomp/src/base \
+    && git clone --branch $TAG $REPO_PATH/seedlink.git \
+    && echo "Cloning external base components" \
+    && mkdir -p $WORK_DIR/seiscomp/build \
+    && cd $WORK_DIR/seiscomp/build \
+    && cmake .. $D \
+    && make -j$(nproc) seedlink \
+    && make install \
+    && rm -rf $WORK_DIR/seiscomp
+
+# # Full SeisComp re-build if needed. Then comment out the seedlink block above.
+# RUN echo "Cloning base repository into $WORK_DIR/seiscomp" \
+#     && rm -rf /var/lib/apt/lists/* \
+#     && rm -rf /usr/local/src/seiscomp \
+#     && git clone --branch $TAG $REPO_PATH/seiscomp.git $WORK_DIR/seiscomp \
+#     && echo "Cloning base components" \
+#     && cd $WORK_DIR/seiscomp/src/base \
+#     && git clone --branch $TAG $REPO_PATH/main.git \
+#     && git clone --branch $TAG $REPO_PATH/common.git \
+#     && git clone --branch $TAG $REPO_PATH/extras.git \
+#     && git clone --branch $TAG $REPO_PATH/seedlink.git \
+#     && echo "Cloning external base components" \
+#     && git clone --branch $TAG  https://github.com/swiss-seismological-service/sed-SeisComP-contributions.git contrib-sed \
+#     && git clone https://github.com/SED-EEW/SED-EEW-SeisComP-contributions.git $WORK_DIR/seiscomp/src/base/sed-addons/ \
+#     && mkdir -p $WORK_DIR/seiscomp/build \
+#     && cd $WORK_DIR/seiscomp/build \
+#     && cmake .. $D \
+#     && make install
+
+
+
+# Switch to sysop for per-user profiles and data
+USER sysop
+WORKDIR /home/sysop
+
+# download slab data etc. into data folder
+RUN mkdir -p /home/sysop/sm_data \
+    && strec_cfg update --datafolder /home/sysop/sm_data --slab # --gcmt
+
+# setup shakemap profile
+RUN sm_profile -c default -a
+
+# get pyfinder to wrap FinDer in python
+RUN git clone https://github.com/sceylan/pyfinder.git /home/sysop/pyfinder
+
+# bring in ShakeMap patches into the image
+# COPY host_shared /home/sysop/host_shared
+# Copy only the ShakeMap patch overrides into the image
+COPY host_shared/docker_overrides/shakemap_patches /tmp/shakemap_patches
+
+USER root
+# ShakeMap patches (as root)
+COPY host_shared/docker_overrides/shakemap_patches /home/sysop/host_shared/docker_overrides/shakemap_patches
+RUN cp -f /home/sysop/host_shared/docker_overrides/shakemap_patches/utils/amps.py /usr/local/lib/python3.9/site-packages/shakemap_modules/utils/amps.py \
+    && cp -f /home/sysop/host_shared/docker_overrides/shakemap_patches/coremods/assemble.py /usr/local/lib/python3.9/site-packages/shakemap_modules/coremods/assemble.py \
+    && cp -f /home/sysop/host_shared/docker_overrides/shakemap_patches/config.ini /home/sysop/.strec/config.ini \
+    && cp -f /usr/local/lib/python3.9/site-packages/strec/data/moment_tensors.db /home/sysop/.strec/moment_tensors.db \
+    && cp -f /usr/local/lib/python3.9/site-packages/strec/data/moment_tensors.db /home/sysop/sm_data/moment_tensors.db
+
+# Final ownership fix
+RUN chown -R sysop:sysop /home/sysop
+USER sysop
+
+# Install python packages
+RUN python3.9 -m pip install psycopg2 xmltodict filelock pandas geopandas
+

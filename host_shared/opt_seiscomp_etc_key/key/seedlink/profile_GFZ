@@ -1,0 +1,5 @@
+# Activated plugins for category sources
+sources = gfz:chain
+
+# Hostname or IP of the Seedlink server.
+sources.gfz.address = geofon.gfz-potsdam.de

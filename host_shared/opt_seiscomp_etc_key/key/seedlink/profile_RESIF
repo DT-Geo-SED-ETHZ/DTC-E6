@@ -1,0 +1,5 @@
+# Activated plugins for category sources
+sources = resif:chain
+
+# Hostname or IP of the Seedlink server.
+sources.resif.address = rtserve.resif.fr

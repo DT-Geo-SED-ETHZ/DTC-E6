@@ -1,0 +1,5 @@
+# Activated plugins for category sources
+sources = eq20b:chain
+
+# Hostname or IP of the Seedlink server.
+sources.eq20b.address = eq20b.ethz.ch

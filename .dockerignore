@@ -1,0 +1,14 @@
+# Ignore everything in host_shared except ShakeMap patches
+host_shared/*
+!host_shared/docker_overrides/shakemap_patches/**
+
+# Ignore large/generated outputs or caches
+*.pyc
+__pycache__/
+.env
+
+# Ignore VCS and OS files
+.git
+.gitignore
+.DS_Store
+Thumbs.db
