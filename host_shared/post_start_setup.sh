@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e #uo pipefail
+set -euo pipefail
 
 SYSOP_USER="${SYSOP_USER:-sysop}"
 USER_HOME="/home/${SYSOP_USER}"
@@ -36,6 +36,9 @@ if [ -d "$USER_SRC/FinDer-config" ]; then
   mkdir -p "$USER_DEST/FinDer-config"
   cp -a "$USER_SRC/FinDer-config/." "$USER_DEST/FinDer-config/"
 fi
+
+# Copy the files under opt_seiscomp_etc to /opt/seiscomp/etc
+cp -a "$HOST_SHARED/opt_seiscomp_etc/." "$SYS_DEST/"
 
 # normalize connection.server to localhost (avoid host.docker.internal)
 if [ -f "$USER_DEST/global.cfg" ]; then
@@ -95,7 +98,56 @@ if [ ! -f "$DB_PATH" ] || [ -z "$(sqlite3 "$DB_PATH" '.tables' 2>/dev/null)" ]; 
   else
     echo "WARNING: Schema file not found at $SCHEMA_FILE"
   fi
+
+  (sqlite3 -batch -init $SEISCOMP_ROOT/share/db/vs/sqlite3.sql $DB_PATH .exit && \
+   sqlite3 -batch -init $SEISCOMP_ROOT/share/db/wfparam/sqlite3.sql $DB_PATH .exit)
+
 fi
+
+sed -i 's|^#\?recordstream *=.*|recordstream = slink://localhost:18000|' ~/.seiscomp/global.cfg
+
+# ---- Seedlink FIFO binding profile: create proper bindings + assign to all stations ----
+# Copy seedlink.cfg etc
+cp "$HOST_SHARED/seedlink.cfg" "$USER_DEST/"
+
+# Create the seedlink bindings directory and the 'fifo' profile with its sources file
+BIND_DIR="$SEISCOMP_ROOT/etc/bindings/seedlink/"
+mkdir -p "$BIND_DIR"
+
+# List the available source-group(s). Must be just names, not "sources = ..."
+printf "%s\n" "mseedfifo" > "$BIND_DIR/sources"
+
+# Define the mseedfifo source-group so the renderer can produce a plugin block
+cat > "$BIND_DIR/mseedfifo" <<'EOF'
+plugins = mseedfifo
+
+[mseedfifo]
+fifo = /opt/seiscomp/var/run/seedlink/mseedfifo
+EOF
+
+# Ensure the seedlink key directory exists and set the default profile mapping
+mkdir -p "$SEISCOMP_ROOT/etc/key/seedlink/"
+printf "* fifo\n" > "$SEISCOMP_ROOT/etc/key/seedlink/profile"
+printf "sources = mseedfifo\n" > "$SEISCOMP_ROOT/etc/key/seedlink/profile_fifo"
+
+# Assign the 'fifo' profile to all NET.STA via the SeisComP shell (idempotent)
+printf "set profile seedlink fifo *.*\nexit\n" | seiscomp shell || true
+
+# Ensure the FIFO path exists and is writable
+mkdir -p /opt/seiscomp/var/run/seedlink/
+mkfifo /opt/seiscomp/var/run/seedlink/mseedfifo || true
+chmod 666 /opt/seiscomp/var/run/seedlink/mseedfifo
+
+# Build SeedLink config now that bindings exist (render seedlink.ini in one pass)
+seiscomp update-config seedlink || true
+# sanity: ensure the ini was created; if not, try once more after a short wait
+INI="$SEISCOMP_ROOT/var/lib/seedlink/seedlink.ini"
+if [ ! -s "$INI" ]; then
+  /bin/sleep 1 || true
+  seiscomp update-config seedlink || true
+fi
+# restart seedlink so the new plugin block is loaded immediately
+seiscomp restart seedlink || true
 
 # ---- Ensure scmaster is up with the new configuration ----
 seiscomp start scmaster || true
@@ -103,11 +155,9 @@ seiscomp start scmaster || true
 seiscomp update-config || true
 seiscomp restart scmaster || true
 
-# ---- Seedlink FIFO profile cheatcode (if desired) ----
-PROFILE_KEY="$SEISCOMP_ROOT/etc/key/seedlink/profile_fifo"
-mkdir -p "$(dirname "$PROFILE_KEY")"
-echo "sources = seedlink:mseedfifo" > "$PROFILE_KEY"
-printf "set profile seedlink fifo *.*\nexit\n" | seiscomp shell || true
+# Re-render seedlink after scmaster is up (idempotent) and ensure it is running
+seiscomp update-config seedlink || true
+seiscomp restart seedlink || true
 
 # ---- FinDer aliases (no overwrite of your preconfigured cfgs) ----
 for alias in scfditaly scfdalpine scfdforela; do
@@ -120,6 +170,12 @@ for alias in scfditaly scfdalpine scfdforela; do
     cp -f "$USER_SRC/${alias}.cfg" "$USER_DEST/"
   fi
 done
+
+# Override scalert configuration to avoid '+' merge issue
+cat > ~/.seiscomp/scalert.cfg <<'EOF'
+# Override defaults, avoid '+' merge issue
+scripts.event = /opt/seiscomp/etc/runshakemap.sh
+EOF
 
 # ---- Region configs (optional: only if you want them copied now) ----
 REGIONS="$HOST_SHARED/docker_overrides/shakemap_region_configs"
@@ -143,8 +199,35 @@ done
 
 # ---- Enable core modules and FinDer aliases, then restart ----
 if command -v seiscomp >/dev/null 2>&1; then
-  seiscomp enable scgof scalert scevent scwfparam scfditaly scfdforela scfdalpine || true
+  seiscomp enable scgof scalert scevent scfditaly scfdforela scfdalpine || true
   seiscomp restart || true
 fi
+
+
+echo "=== Applying ShakeMap patches as root ==="
+PATCH_SRC="/home/sysop/host_shared/docker_overrides/shakemap_patches"
+if [ -d "$PATCH_SRC" ]; then
+    # SeisComp related patches: ShakeMap trigger python script
+    mkdir -p /home/sysop/.seiscomp/scripts/run_events
+    cp -f "$PATCH_SRC"/seiscomp_shakemap/*.py "/home/sysop/.seiscomp/scripts/run_events/"
+    chown -R sysop:sysop /home/sysop/.seiscomp/scripts/run_events
+    chmod +x /home/sysop/.seiscomp/scripts/run_events/*.py
+
+    # Trigger scripts for ShakeMap from scalert. Goes to /opt/seiscomp/etc
+    cp -f "$PATCH_SRC"/seiscomp_shakemap/pyshakemap.py "/opt/seiscomp/etc/"
+    chmod +x "/opt/seiscomp/etc/pyshakemap.py"
+    chown sysop:sysop "/opt/seiscomp/etc/pyshakemap.py"
+
+    cp -f "$PATCH_SRC"/seiscomp_shakemap/runshakemap.sh "/opt/seiscomp/etc/"
+    chmod +x "/opt/seiscomp/etc/runshakemap.sh"
+    chown sysop:sysop "/opt/seiscomp/etc/runshakemap.sh"
+
+    echo "Patches applied."
+else
+    echo "WARNING: Patch source folder not found: $PATCH_SRC"
+fi
+
+# Restart scalert to make sure it collected its configuration changes
+seiscomp restart scalert || true
 
 echo "=== Post-start setup complete ==="

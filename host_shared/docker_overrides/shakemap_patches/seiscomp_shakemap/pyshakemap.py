@@ -12,7 +12,7 @@ import sys
 import logging
 
 USER = "scalert"
-PYTHON_EXEC = "/home/sysop/miniconda/bin/python"
+PYTHON_EXEC = "python3.9" # "/home/sysop/miniconda/bin/python"
 SHAKEMAP_SCRIPT = "/home/sysop/.seiscomp/scripts/run_events/make_rupturejson_and_allxmlinput_fromdb_call_shake.py"
 LOGFILE = os.path.expanduser(f"~/.seiscomp/log/{USER}-processing-info.log")
 LOGFILE_PY = os.path.expanduser(f"~/.seiscomp/log/{USER}-pyshakemap.log")

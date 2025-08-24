@@ -475,7 +475,8 @@ def main():
        # Run ShakeMap calculations
         logging.info(f"Launching ShakeMap calculations for {event_id}")
         subprocess.call([
-            "/home/sysop/miniconda/envs/shakemap/bin/shake", "-d", event_id, "select", "assemble",
+            # "/home/sysop/miniconda/envs/shakemap/bin/shake", "-d", event_id, "select", "assemble",
+            "shake", "-d", event_id, "select", "assemble",
             "-c", "dtgeosf-test", "model", "info", "contour", "mapping", "transfer_email", "stations", "gridxml"
         ])
  
