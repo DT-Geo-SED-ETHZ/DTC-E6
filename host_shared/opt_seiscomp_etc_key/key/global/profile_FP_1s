@@ -1,0 +1,73 @@
+# The sensor location code of the preferred stream used e.g. by scautopick and
+# scrttv.
+detecLocid = ""
+
+# The channel code of the preferred stream used by e.g. scautopick and scrttv.
+# If no component code is given, the vertical component will be fetched from
+# inventory considering the channel orientation (azimuth, dip). If that
+# approach fails, 'Z' will be appended and used as fallback. Do not use regular
+# expressions!
+detecStream = FP1
+
+# Activate deconvolution for this station. If no responses are configured, an
+# error is raised and the data is not processed. This flag will be overridden
+# by the type specific flag (see GlobalAmplitudeProfile).
+amplitudes.enableResponses = true
+
+# Define the length of the taper at either side of the waveform. The length
+# will be added to the data request: start - taper and end + taper.
+amplitudes.resp.taper = 0.05
+
+# The minimum frequency of the considered spectrum.
+# After data is converted into the frequency domain that minimum frequency
+# defines the end of the left-side cosine taper applied to the spectrum. The
+# taper applies from 0 Hz to {minFreq} Hz. A value of 0 or lower disables that
+# taper.
+amplitudes.resp.minFreq = 10
+
+# The maximum frequency of the considered spectrum.
+# After data are converted in to the frequency domain that maximum frequency
+# defines the start of the right-side cosine taper applied to the spectrum. The
+# taper applies from {maxFreq} Hz to {fNyquist} Hz. A value of 0 or lower
+# disables that taper.
+amplitudes.resp.maxFreq = 950
+
+# Activate deconvolution for this amplitude type. If not set, the global flag
+# "amplitudes.enableResponses" will be used instead.
+amplitudes.enableResponses.enableResponses = true
+
+# Define the length of the taper at either side of the waveform. The length
+# will be added to the data request: start - taper and end + taper.
+amplitudes.enableResponses.resp.taper = 0.05
+
+# After data are converted in to the frequency domain that minimum frequency
+# defines the end of the left-side cosine taper for the frequency spectrum. The
+# taper applies from 0 Hz to {minFreq} Hz. A value of 0 or lower disables that
+# taper.
+amplitudes.enableResponses.resp.minFreq = 10
+
+# After data are converted in to the frequency domain that maximum frequency
+# defines the start of the right-side cosine taper for the frequency spectrum.
+# The taper applies from {maxFreq} Hz to {fNyquist} Hz. A value of 0 or lower
+# disables that taper.
+amplitudes.enableResponses.resp.maxFreq = 950
+
+# Activate deconvolution for this amplitude type. If not set, the global flag
+# "amplitudes.enableResponses" will be used instead.
+amplitudes.resp.enableResponses = true
+
+# Define the length of the taper at either side of the waveform. The length
+# will be added to the data request: start - taper and end + taper.
+amplitudes.resp.resp.taper = 0.05
+
+# After data are converted in to the frequency domain that minimum frequency
+# defines the end of the left-side cosine taper for the frequency spectrum. The
+# taper applies from 0 Hz to {minFreq} Hz. A value of 0 or lower disables that
+# taper.
+amplitudes.resp.resp.minFreq = 10
+
+# After data are converted in to the frequency domain that maximum frequency
+# defines the start of the right-side cosine taper for the frequency spectrum.
+# The taper applies from {maxFreq} Hz to {fNyquist} Hz. A value of 0 or lower
+# disables that taper.
+amplitudes.resp.resp.maxFreq = 950
