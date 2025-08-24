@@ -1,244 +1,204 @@
-# FinDer, scfinder and FinDer-in-a-Docker config for DT-Geo
-
-## Build and run a standalone FinDer docker for DT-Geo
-
-```
-docker build -f "Dockerfile" -t dtgeofinder:master "."
-
-docker stop dtgeofinder 
-
-docker rm dtgeofinder 
-
-docker run -d \
-    -p 9878:22 \
-    -v dtgeofinder:/home/sysop \
-    --hostname FinDer-for-DTGeo-Docker \
-    --name dtgeofinder \
-    dtgeofinder:master
-```
-
-## Interactive shell - shakemap test
-```bash
-docker exec -it dtgeofinder bash
-cd shakemap
-
-sm_create ci3144585 -e ci 1994-01-17T12:30:55 -118.546 34.211 19 6.6 "Northridge, California" -n
-shake ci3144585 select
-shake ci3144585 assemble
-```
-
-## Connection to ADACloud @ CINECA for DT-GEO execution of workflow
-If you do not already have it create an account at userdb.hpc.cineca.it and write mail to johannes.kemper@eaps.ethz.ch.
-Login to the ADACloud (adacloud.hpc.cineca.it) and start the respective virtual machine (VM) called DTC-E6.
-You might need to update the private ssh-key for connection. 
-Connect via ssh to this machine (IP address is in the ADACloud dashboard - currently 131.175.206.100) with standard user "ubuntu", as the VM OS is the latest available ubuntu:
-```bash
-ssh ubuntu@131.175.206.100
-```
-Docker should be installed and ready to use. 
-If you want to update the Dockerfile that has been used to build the dtgeofinder docker in the VM you can git clone this repository and start building. 
-
-## Blacklist HH with colocated HN
-```bash
-NOW=$( date +%s )
-function date2s () {  date --date="$1 UTC"  +%s ;} 
-
-for U in dt-geo-seedlink.ethz.ch:18000 eq20b.ethz.ch:18000 ;
-do 
-  slinktool -Q $U ;
-done|sed 's/    / __ /'|while read N S L C Q D1 T1 T D2 T2; 
-do 
-   DELAY=$(( $NOW -  $( date2s "$D2 $T2" ))); 
-   if [[ $DELAY -lt 1000 ]] ; 
-   then 
-    echo  $N $S $L $C $Q $D1 $T1 $T $D2 $T2 $DELAY ;
-   fi ;
-done > slinktool_with_delay.log
-grep -i -e " HNZ " -e " HGZ "  slinktool_with_delay.log |while read N S L T ;do grep "^$N $S .* HHZ " slinktool_with_delay.log >/dev/null&& echo "$N.$S.*.HH*";done|paste -s -d ',' -
-```
-
-## Miniseed-based real-time simulation
-
-Alias the msrtsimul docker command (once per session):
-```bash
 
 
-msrtsimuld () { 
-  docker exec -u sysop     msrtsimuld sh -c 'rm /home/sysop/seiscomp/etc/inventory/*.xml'
-  docker exec -u sysop -it finder     sed -i 's/^#recordstream = slink:\/\/host.docker.internal:18000/recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
-  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly scfdforela  scfdalpine
-  docker exec -u 0     -it msrtsimuld main $@ ; 
-  docker exec -u sysop -it finder     sed -i 's/^recordstream = slink:\/\/host.docker.internal:18000/#recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
-  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly scfdforela  scfdalpine
-  }           
+# dtgeofinder: SeisComP + FinDer + ShakeMap + PyFinder (Docker)
 
-msrtsimuld () { 
-  docker exec -u sysop     msrtsimuld sh -c 'rm /home/sysop/seiscomp/etc/inventory/*.xml'
-  docker exec -u sysop -it finder     sed -i 's/^#recordstream = slink:\/\/host.docker.internal:18000/recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
-  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly 
-  docker exec -u 0     -it msrtsimuld main $@ ; 
-  docker exec -u sysop -it finder     sed -i 's/^recordstream = slink:\/\/host.docker.internal:18000/#recordstream = slink:\/\/host.docker.internal:18000/' /home/sysop/.seiscomp/global.cfg
-  docker exec -u sysop -it finder     /opt/seiscomp/bin/seiscomp restart scfditaly 
-  } 
-```
+This repository provides a Dockerized environment to run **SeisComP FinDer**, **ShakeMap**, and **PyFinder** for EEW workflows. It supports fast local testing with waveform **playbacks**, and collects all outputs on the host for easy inspection.
 
-Run any of the simulations:
-```bash
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2009-04-06T01-32-40.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2009-04-06T01-32-40.xml,sc3
+---
 
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-20T02-03-50.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-20T02-03-50.xml,sc3
+## Contents
+- [Requirements](#requirements)
+- [Quickstart](#quickstart)
+- [Build](#build)
+- [Run](#run)
+- [Mounted Volumes & Outputs](#mounted-volumes--outputs)
+- [Playbacks](#playbacks)
+  - [WF1: SeisComP Playback](#wf1-seiscomp-playback)
+  - [WF2: PyFinder Playback](#wf2-pyfinder-playback)
+- [Logs & Debugging](#logs--debugging)
+- [Repo Structure](#repo-structure)
+- [Troubleshooting](#troubleshooting)
+- [Notes & Licensing](#notes--licensing)
 
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-29T07-00-02.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2012-05-29T07-00-02.xml,sc3
+---
 
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2016-08-24T01-36-32.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2016-08-24T01-36-32.xml,sc3
+## Requirements
+- **Docker** (Linux/macOS; Windows via WSL2 also works)
+- **Git**
+- Optional: **GitHub Container Registry** login (`docker login ghcr.io`) if you push/pull private images
 
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-26T19-18-07.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-26T19-18-07.xml,sc3
+Hardware: 
+- ≥ 4 CPU cores and ≥ 4 GB RAM recommended for smoother playbacks
 
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-30T06-40-17.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2016-10-30T06-40-17.xml,sc3
+---
 
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2017-01-18T10-14-09.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2017-01-18T10-14-09.xml,sc3
-
-msrtsimuld \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2022-11-09T06-07-25.mseed \
-  sysop@host.docker.internal:/home/sysop/playback/test1/2022-11-09T06-07-25.xml,sc3
-```
-
-See the produced event(s) with simulated data access:
-```bash
-scolv -I slink://localhost:18000
-```
-
-Consider setting simulated events as "Not existing"
-
-## Playback
-
-Disable all scfinder aliases:
-```bash
-docker exec -u sysop  -it scpbd /opt/seiscomp/bin/seiscomp disable scfdalpine scfdforela scfditaly
-```
-
-Enable the appropriate alias:
-```bash
-docker exec -u sysop  -it scpbd /opt/seiscomp/bin/seiscomp enable scfditaly
-```
-
-Adjust the configuration:
-```bash
-ssh -X -p 222 sysop@localhost /opt/seiscomp/bin/seiscomp exec scconfig
-```
-
-Playback mseed data "playback/test1/2016-10-30T06-40-17.mseed512"  with metadata inventory "playback/test1/inv.xml" in format "sc3":
-```bash
-docker exec -u 0 -it scpbd main $USER@host.docker.internal:$(pwd)/playback/test1/2016-10-30T06-40-17.mseed512 $USER@host.docker.internal:$(pwd)/playback/test1/2016-10-30T06-40-17.xml,sc3 
-```
-
-Save the results:
-```bash
-docker cp scpbd:/home/sysop/event_db.sqlite playback/test1/2016-10-30T06-40-17.sqlite
-```
-
-More info: https://github.com/FMassin/scpbd
-
-
-## Get FinDer-in-a-Docker (assuming granted access)
+## Quickstart
 
 ```bash
-docker login ghcr.io/sed-eew/finder
-docker pull  ghcr.io/sed-eew/finder:master 
+# 1) Clone
+git clone https://github.com/DT-Geo-SED-ETHZ/SeisComP-config.git
+cd SeisComP-config
+
+# 2) Build the image
+./docker_build.sh
+
+# 3) Start the container (runs post_start_setup automatically)
+./docker_run.sh
+
+# 4) Run a playback (choose WF1 or WF2 below)
 ```
 
-## Update existing container (re-use same docker volume for permanent logs)
+---
+
+## Build
+
+Use the helper script; it is **OS-smart**:
 
 ```bash
-# RUN ONLY IF REALLY NEEDED
-# docker stop finder && docker rm finder && docker run -d --add-host=host.docker.internal:host-gateway -p 9878:22 -v finder:/home/sysop --hostname FinDer-in-a-Docker --name finder ghcr.io/sed-eew/finder:master
+./docker_build.sh
 ```
 
-## Setup aliases
+- On Apple Silicon (macOS arm64), it automatically uses **buildx** with `--platform linux/amd64`.
+- On Linux/x86_64, it uses plain `docker build`.
+
+**Environment overrides** (optional):
+- `DOCKERFILE` — Dockerfile path (default: `Dockerfile.dtgeo`)
+- `IMAGE_TAG` — Image tag (default: `dtgeofinder:master`)
+- `BUILD_CONTEXT` — Build context (default: `.`)
+- `FORCE_BUILDX=true` — Force buildx on any system
+- `FORCE_PLATFORM=linux/amd64` — Force target platform (implies buildx)
+
+Examples:
+```bash
+FORCE_PLATFORM=linux/amd64 ./docker_build.sh
+IMAGE_TAG=myrepo/dtgeofinder:test DOCKERFILE=Dockerfile.dtgeo ./docker_build.sh
+```
+
+---
+
+## Run
+
+Start the container using the run helper:
 
 ```bash
-docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp alias create scfdalpine scfinder
-docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp alias create scfditaly  scfinder
-docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp alias create scfdforela scfinder
-
-docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp enable scfdalpine scfditaly scfdforela 
+./docker_run.sh
 ```
 
-## Update SeisComP and FinDer config
+What it does:
+1. Stops/removes any existing `dtgeofinder` container.
+2. Prepares host-side output directories under `host_shared/docker-output/`.
+3. Ensures a fresh host-side SQLite DB under `host_shared/seiscomp_db/db.sqlite`.
+4. Launches the container with all required **volume mappings** and environment settings.
+5. **Automatically runs** `post_start_setup.sh` inside the container (if present & executable) and then keeps the container alive (`tail -f /dev/null`).
 
-```bash
-docker cp  finder:/home/sysop/.seiscomp/FinDer-config/ /home/sysop/.seiscomp/FinDer-config/
-docker cp  finder:/home/sysop/.seiscomp/scfd*.cfg /home/sysop/.seiscomp/
+> Make sure your post-start script exists and is executable on the host:
+> ```bash
+> chmod +x host_shared/post_start_setup.sh
+> ```
 
-# UPDATE CONFIG IN /home/sysop/.seiscomp/ AND THEN:
+---
 
-docker cp /home/sysop/.seiscomp/FinDer-config/ finder:/home/sysop/.seiscomp/FinDer-config/
+## Mounted Volumes & Outputs
 
-docker cp /home/sysop/.seiscomp/scfdforela.cfg finder:/home/sysop/.seiscomp/
-docker cp /home/sysop/.seiscomp/scfdalpine.cfg finder:/home/sysop/.seiscomp/
-docker cp /home/sysop/.seiscomp/scfditaly.cfg  finder:/home/sysop/.seiscomp/
+All important paths are mounted back to the **host** so you can inspect results without entering the container:
 
-docker exec -u 0 -it finder chown sysop:sysop /home/sysop/.seiscomp/ -R
+- **FinDer outputs** → `host_shared/docker-output/FinDer-output/`
+- **ShakeMap outputs** → `host_shared/docker-output/shakemap/`
+- **PyFinder outputs** → `host_shared/docker-output/PyFinder-output/`
+- **SeisComP logs** → `host_shared/.seiscomp_log/`
+
+These directories persist even if you remove the container.
+
+---
+
+## Playbacks
+
+Two playback workflows are supported. Both create outputs on the host (see above) and write logs under `host_shared/.seiscomp_log/`.
+
+### WF1: SeisComP Playback
+
+1. Enter the container and run the helper script:
+   ```bash
+   docker exec -it dtgeofinder bash
+   /home/sysop/host_shared/playback.bash
+   ```
+
+2. **First run note:** SeisComP may hang while initializing its system. If it appears stuck, press `Ctrl+C`, terminate the lingering process, and re-run the script. Subsequent runs should be fine.
+
+3. During playback, FinDer and ShakeMap will trigger automatically.
+   - Outputs: `host_shared/docker-output/FinDer-output/`, `host_shared/docker-output/shakemap/`
+   - Logs: `host_shared/.seiscomp_log/`
+
+### WF2: PyFinder Playback
+
+1. Enter the container and run PyFinder’s playback with **Python 3.9**:
+   ```bash
+   docker exec -it dtgeofinder bash
+   cd /home/sysop/pyfinder/pyfinder
+   python3.9 playback.py
+   ```
+
+   > **Note:** If you wait long enough, PyFinder will submit all pre-scheduled update times into the database and follow them up. This does not change the final outcome since the playback emulates real-time data flow. Otherwise, feel free to break the process with `CTRL+C`
+
+2. Outputs appear in `host_shared/docker-output/shakemap/`.
+
+---
+
+## Logs & Debugging
+
+- All runtime logs (SeisComP, FinDer, ShakeMap) are under:
+  ```
+  host_shared/.seiscomp_log/
+  ```
+- Tail a log in real time:
+  ```bash
+  docker exec -it dtgeofinder bash -lc "tail -n 200 -f /home/sysop/.seiscomp/log/finder.log"
+  ```
+- Restart a SeisComP module inside the container:
+  ```bash
+  docker exec -it dtgeofinder bash -lc "seiscomp restart <module>"
+  ```
+- If you interrupted a script and left zombies, the container uses `--init`, but you can also clean up manually inside the container:
+  ```bash
+  pkill -f spawn_main || true
+  ```
+
+---
+
+## Repo Structure
+
+```
+SeisComP-config/
+├─ Dockerfile.dtgeo                  # Image build (SeisComP + FinDer + ShakeMap + PyFinder)
+├─ docker_build.sh                   # OS-smart build helper (buildx on Apple Silicon)
+├─ docker_run.sh                     # Start helper; runs post_start_setup and sets up volumes
+├─ host_shared/
+│  ├─ playback.bash                  # WF1 helper (SeisComP playback)
+│  ├─ post_start_setup.sh            # Runs automatically at container start (via docker_run)
+│  ├─ docker-output/
+│  │  ├─ FinDer-output/              # FinDer results (host)
+│  │  ├─ shakemap/                   # ShakeMap results (host)
+│  │  └─ PyFinder-output/            # PyFinder results (host)
+│  └─ docker_overrides/
+│     └─ shakemap_patches/           # Local ShakeMap patches (copied during build)
+└─ README.md                         # This file
 ```
 
-## Restart scfinder aliases in container
+---
 
-```bash
-docker exec -u sysop -it finder /opt/seiscomp/bin/seiscomp restart scfdalpine scfditaly scfdforela
-```
-Ignore or stop scmaster in the docker container.
+## Troubleshooting
 
-## Update inventory
-```bash
+- **PR page slow / GitHub UI lag**: try private window, disable extensions, or use another browser.
+- **Cannot push due to large files**: remove large binaries from history or use Git LFS.
+- **Shakemap/STREC database paths**: the build ensures both `~/.strec/moment_tensors.db` and `~/sm_data/moment_tensors.db` are present. If you override paths, make sure both exist when required.
+- **Post-start script did not run**: ensure it exists and is executable at `host_shared/post_start_setup.sh`. The run script calls it automatically.
+- **No outputs**: confirm playback actually ran; check logs in `host_shared/.seiscomp_log/`.
 
-# Metadata INGV (Z3 removed)
-curl http://webservices.ingv.it/fdsnws/station/1/query"?format=xml&level=response" > webservices.ingv.it.xml 
-/opt/seiscomp/bin/seiscomp exec fdsnxml2inv webservices.ingv.it.xml > webservices.ingv.it.scml   
-/opt/seiscomp/bin/seiscomp exec invextr --rm --chans "Z3.*" webservices.ingv.it.scml > webservices.ingv.it.filt.scml
- 
-# Metadata SED (GU removed)
-/opt/seiscomp/bin/seiscomp exec scxmldump -d "postgresql://seiscomp3:birkidollar5s@eq20d.ethz.ch:5432/sc3dbd?column_prefix=m_"  --plugins dbpostgresql -I > arclink.ethz.ch.scml
-/opt/seiscomp/bin/seiscomp exec invextr --rm --chans "GU.*" arclink.ethz.ch.scml >  arclink.ethz.ch.filt.scml
+---
 
-# Merging SEd and INGV
-scinv merge arclink.ethz.ch.filt.scml webservices.ingv.it.filt.scml -o /opt/seiscomp/etc/inventory/arclink.ethz.ch.noGU-merged-webservices.ingv.it.noZ3.xml
- 
-# Update seiscomp
-seiscomp update-config
+## Notes & Licensing
 
-# Find missing channels (assuming to day is 2024/01/05)
-slinktool -Q dt-geo-seedlink.ethz.ch:18000 |grep 2024/01/05|sed 's/    /  _  /'|while read N S L C T;do curl http://localhost:8080/fdsnws/station/1/query"?network=$N&station=$S&location=${L/_/}&channel=$C&level=channel" 2>/dev/null |grep $S >/dev/null|| echo missing $N $S $L $C;done #|awk '{print $2"."$3}'|sort -u
-```
+- **FinDer** is **not open-source**. The image includes it for internal evaluation; do not redistribute binaries.
+- Outputs are always collected on the host via mounted volumes for reproducibility and archival.
 
-On 2024/01/05, the following are still missing:
-```bash
-missing IV MALA5 _ EHE
-missing IV MALA5 _ EHN
-missing IV MALA5 _ EHZ
-missing IV MALA2 _ EHE
-missing IV MALA2 _ EHN
-missing IV MALA2 _ EHZ
-missing IV MALA4 _ EHE
-missing IV MALA4 _ EHN
-missing IV MALA4 _ EHZ
-missing IV MALA0 _ EHE
-missing IV MALA0 _ EHN
-missing IV MALA0 _ EHZ
-missing IV MALA3 _ EHE
-missing IV MALA3 _ EHN
-missing IV MALA3 _ EHZ
-```
+If you have questions or improvements, open an issue or PR.
