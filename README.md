@@ -104,7 +104,7 @@ All important paths are mounted back to the **host** so you can inspect results 
 
 - **FinDer outputs** → `host_shared/docker-output/FinDer-output/`
 - **ShakeMap outputs** → `host_shared/docker-output/shakemap/`
-- **PyFinder outputs** → `host_shared/docker-output/PyFinder-output/`
+- **PyFinder outputs** → also goes to `host_shared/docker-output/shakemap/` and `host_shared/docker-output/FinDer-output/`
 - **SeisComP logs** → `host_shared/.seiscomp_log/`
 
 These directories persist even if you remove the container.
