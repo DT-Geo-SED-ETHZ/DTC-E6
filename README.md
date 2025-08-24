@@ -1,5 +1,3 @@
-
-
 # dtgeofinder: SeisComP + FinDer + ShakeMap + PyFinder (Docker)
 
 This repository provides a Dockerized environment to run **SeisComP FinDer**, **ShakeMap**, and **PyFinder** for EEW workflows. It supports fast local testing with waveform **playbacks**, and collects all outputs on the host for easy inspection.
@@ -42,7 +40,7 @@ cd SeisComP-config
 # 2) Build the image
 ./docker_build.sh
 
-# 3) Start the container (runs post_start_setup automatically)
+# 3) Start the container (post_start_setup must be run manually)
 ./docker_run.sh
 
 # 4) Run a playback (choose WF1 or WF2 below)
@@ -89,7 +87,13 @@ What it does:
 2. Prepares host-side output directories under `host_shared/docker-output/`.
 3. Ensures a fresh host-side SQLite DB under `host_shared/seiscomp_db/db.sqlite`.
 4. Launches the container with all required **volume mappings** and environment settings.
-5. **Automatically runs** `post_start_setup.sh` inside the container (if present & executable) and then keeps the container alive (`tail -f /dev/null`).
+
+> After the container is started, you must manually run the post-start setup script inside the container:
+
+```bash
+docker exec -it dtgeofinder bash
+/home/sysop/host_shared/post_start_setup.sh
+```
 
 > Make sure your post-start script exists and is executable on the host:
 > ```bash
@@ -171,10 +175,10 @@ Two playback workflows are supported. Both create outputs on the host (see above
 SeisComP-config/
 ├─ Dockerfile.dtgeo                  # Image build (SeisComP + FinDer + ShakeMap + PyFinder)
 ├─ docker_build.sh                   # OS-smart build helper (buildx on Apple Silicon)
-├─ docker_run.sh                     # Start helper; runs post_start_setup and sets up volumes
+├─ docker_run.sh                     # Start helper; sets up volumes and starts container
 ├─ host_shared/
 │  ├─ playback.bash                  # WF1 helper (SeisComP playback)
-│  ├─ post_start_setup.sh            # Runs automatically at container start (via docker_run)
+│  ├─ post_start_setup.sh            # Manual post-start setup script (run inside container after start)
 │  ├─ docker-output/
 │  │  ├─ FinDer-output/              # FinDer results (host)
 │  │  ├─ shakemap/                   # ShakeMap results (host)
