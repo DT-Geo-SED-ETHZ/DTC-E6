@@ -186,16 +186,6 @@ SeisComP-config/
 
 ---
 
-## Troubleshooting
-
-- **PR page slow / GitHub UI lag**: try private window, disable extensions, or use another browser.
-- **Cannot push due to large files**: remove large binaries from history or use Git LFS.
-- **Shakemap/STREC database paths**: the build ensures both `~/.strec/moment_tensors.db` and `~/sm_data/moment_tensors.db` are present. If you override paths, make sure both exist when required.
-- **Post-start script did not run**: ensure it exists and is executable at `host_shared/post_start_setup.sh`. The run script calls it automatically.
-- **No outputs**: confirm playback actually ran; check logs in `host_shared/.seiscomp_log/`.
-
----
-
 ## Notes & Licensing
 
 - **FinDer** is **not open-source**. The image includes it for internal evaluation; do not redistribute binaries.
