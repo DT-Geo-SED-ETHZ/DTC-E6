@@ -45,7 +45,7 @@ from shapely.geometry import mapping
 # Global variables
 DBNAME = "scdtgeosf"
 USER = "seiscomp"
-HOST = "dtgeosf-test.ethz.ch"
+HOST = "localhost"
 PW = "aoz54dtgeosf"
 PORT = "5432"
 
