@@ -63,27 +63,28 @@ DB_PATH="$HOST_SHARED/seiscomp_db/db.sqlite"
 DB_URI="sqlite3://${HOST_SHARED}/seiscomp_db/db.sqlite"  # yields sqlite3:///absolute/path
 mkdir -p "$(dirname "$DB_PATH")"
 chown -R "${SYSOP_USER}:${SYSOP_USER}" "$(dirname "$DB_PATH")" || true
-if [ -f "$USER_DEST/global.cfg" ]; then
-  if grep -q "dbPlugin" "$USER_DEST/global.cfg"; then
-    sed -i 's|^\s*dbPlugin\s*=.*|dbPlugin = dbsqlite3|' "$USER_DEST/global.cfg"
-  else
-    echo "dbPlugin = dbsqlite3" >> "$USER_DEST/global.cfg"
-  fi
-  if grep -q "^\s*database\s*=" "$USER_DEST/global.cfg"; then
-    sed -i "s|^\s*database\s*=.*|database = ${DB_URI}|" "$USER_DEST/global.cfg"
-  else
-    echo "database = ${DB_URI}" >> "$USER_DEST/global.cfg"
-  fi
+### Uncomment these if SeisComp was configured for sqlite3
+# if [ -f "$USER_DEST/global.cfg" ]; then
+#   if grep -q "dbPlugin" "$USER_DEST/global.cfg"; then
+#     sed -i 's|^\s*dbPlugin\s*=.*|dbPlugin = dbsqlite3|' "$USER_DEST/global.cfg"
+#   else
+#     echo "dbPlugin = dbsqlite3" >> "$USER_DEST/global.cfg"
+#   fi
+#   if grep -q "^\s*database\s*=" "$USER_DEST/global.cfg"; then
+#     sed -i "s|^\s*database\s*=.*|database = ${DB_URI}|" "$USER_DEST/global.cfg"
+#   else
+#     echo "database = ${DB_URI}" >> "$USER_DEST/global.cfg"
+#   fi
 
-  # Ensure core.plugins includes dbsqlite3 (required by some versions)
-  if grep -q "^\s*core\.plugins" "$USER_DEST/global.cfg"; then
-    if ! grep -q "core\.plugins.*dbsqlite3" "$USER_DEST/global.cfg"; then
-      sed -i 's|^\s*core\.plugins\s*=.*|core.plugins = dbsqlite3|' "$USER_DEST/global.cfg"
-    fi
-  else
-    echo "core.plugins = dbsqlite3" >> "$USER_DEST/global.cfg"
-  fi
-fi
+#   # Ensure core.plugins includes dbsqlite3 (required by some versions)
+#   if grep -q "^\s*core\.plugins" "$USER_DEST/global.cfg"; then
+#     if ! grep -q "core\.plugins.*dbsqlite3" "$USER_DEST/global.cfg"; then
+#       sed -i 's|^\s*core\.plugins\s*=.*|core.plugins = dbsqlite3|' "$USER_DEST/global.cfg"
+#     fi
+#   else
+#     echo "core.plugins = dbsqlite3" >> "$USER_DEST/global.cfg"
+#   fi
+# fi
 
 # ---- Initialize SQLite schema if DB is missing or empty ----
 SCHEMA_FILE="$SEISCOMP_ROOT/share/db/sqlite3.sql"
@@ -151,7 +152,6 @@ seiscomp restart seedlink || true
 
 # ---- Ensure scmaster is up with the new configuration ----
 seiscomp start scmaster || true
-/bin/sleep 2 || true
 seiscomp update-config || true
 seiscomp restart scmaster || true
 

@@ -1,4 +1,3 @@
-# FROM ghcr.io/sed-eew/finder:master
 FROM ghcr.io/sceylan/finder-base:gmt5
 
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -12,7 +11,6 @@ ENV D="-DSC_GLOBAL_GUI=OFF -DSC_DOC_GENERATE=OFF -DSC_DOC_GENERATE_HTML=OFF -DSC
 
 # Skipping additional apt-get installs on the frozen Buster base.
 # git/wget/python3-pip are already present; we will install Python 3.9 and needed pip packages below.
-
 RUN mkdir $WORK_DIR/python39 \
     && cd $WORK_DIR/python39 \
     && wget https://www.python.org/ftp/python/3.9.9/Python-3.9.9.tgz \
@@ -76,7 +74,28 @@ RUN echo "Cloning base repository into $WORK_DIR/seiscomp" \
 #     && make install
 
 
-
+# --- PostgreSQL server + pre-seed SeisComP schema (build-time) ---
+RUN set -e \
+ && sed -ri 's|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list \
+ && sed -ri 's|http://deb.debian.org/debian-security|http://archive.debian.org/debian-security|g' /etc/apt/sources.list \
+ && sed -ri '/buster-updates/d' /etc/apt/sources.list \
+ && printf 'Acquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99no-check-valid \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends postgresql postgresql-contrib \
+ && rm -rf /var/lib/apt/lists/* \
+ && PGVER="$(ls /etc/postgresql | head -n1)" \
+ && pg_ctlcluster "$PGVER" main start \
+ && runuser -u postgres -- psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_roles WHERE rolname='seiscomp'" | grep -q 1 \
+    || runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "CREATE ROLE seiscomp LOGIN PASSWORD 'aoz54dtgeosf';" \
+ && runuser -u postgres -- psql -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname='scdtgeosf'" | grep -q 1 \
+    || runuser -u postgres -- createdb -O seiscomp scdtgeosf \
+ && runuser -u postgres -- psql -v ON_ERROR_STOP=1 -c "ALTER DATABASE scdtgeosf SET bytea_output TO 'escape';" \
+ && runuser -u postgres -- psql -v ON_ERROR_STOP=1 -d scdtgeosf -f /opt/seiscomp/share/db/postgres.sql \
+ && if [ -f /opt/seiscomp/share/db/wfparam/postgres.sql ]; then runuser -u postgres -- psql -v ON_ERROR_STOP=off -d scdtgeosf -f /opt/seiscomp/share/db/wfparam/postgres.sql; fi \
+ && if [ -f /opt/seiscomp/share/db/vs/postgres.sql ]; then runuser -u postgres -- psql -v ON_ERROR_STOP=off -d scdtgeosf -f /opt/seiscomp/share/db/vs/postgres.sql; fi \
+ && pg_ctlcluster "$PGVER" main stop
+ 
+ 
 # Switch to sysop for per-user profiles and data
 USER sysop
 WORKDIR /home/sysop
@@ -105,10 +124,31 @@ RUN cp -f /home/sysop/host_shared/docker_overrides/shakemap_patches/utils/amps.p
     && cp -f /usr/local/lib/python3.9/site-packages/strec/data/moment_tensors.db /home/sysop/.strec/moment_tensors.db \
     && cp -f /usr/local/lib/python3.9/site-packages/strec/data/moment_tensors.db /home/sysop/sm_data/moment_tensors.db
 
+# Small root-only helper to (re)start the default cluster
+RUN set -e \
+ && cat >/usr/local/sbin/pg-start <<'SH' \
+ && chmod +x /usr/local/sbin/pg-start
+#!/usr/bin/env bash
+set -euo pipefail
+PGVER=$(ls /etc/postgresql | head -n1 2>/dev/null || true)
+if [ -z "$PGVER" ]; then
+  echo "No /etc/postgresql found. Is PostgreSQL installed?" >&2
+  exit 1
+fi
+pg_ctlcluster "$PGVER" main start || service postgresql start
+pg_lsclusters || true
+SH
+
 # Final ownership fix
 RUN chown -R sysop:sysop /home/sysop
+# Clean-up
+RUN rm -rf /root/.cache/pip \
+    && rm -rf /tmp/shakemap_patches
+
 USER sysop
 
 # Install python packages
-RUN python3.9 -m pip install psycopg2 xmltodict filelock pandas geopandas
+RUN python3.9 -m pip install psycopg2 xmltodict filelock pandas geopandas geojson shapely tornado
 
+# Clean-up
+RUN rm -rf /home/sysop/.cache/pip

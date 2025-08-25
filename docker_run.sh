@@ -43,8 +43,50 @@ docker run -d \
   -v "$(pwd)/host_shared/.seiscomp_log:/home/sysop/.seiscomp/log" \
   -v "$HOST_OUT/FinDer-output:/home/sysop/.seiscomp/FinDer-output" \
   -v "$HOST_OUT/shakemap:/home/sysop/shakemap_profiles/default/data" \
+  -v "$HOST_OUT/PyFinder-output:/home/sysop/pyfinder/pyfinder/output" \
   dtgeofinder:master \
   bash -lc "tail -f /dev/null"
+
+# Ensure PostgreSQL is online inside the container and ready for sysop
+# (we do NOT auto-start SeisComP here by design)
+echo "[init] Starting PostgreSQL cluster inside container…"
+docker exec -u root dtgeofinder /usr/local/sbin/pg-start || \
+  echo "[warn] pg-start failed (cluster may already be online)."
+
+# Ensure DB ownership/grants for SeisComP role on every run
+# (idempotent: runs only if role "seiscomp" exists)
+echo "[init] Ensuring DB ownership/grants for seiscomp…"
+if docker exec -u postgres dtgeofinder psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='seiscomp'" | grep -q 1; then
+  docker exec -u postgres dtgeofinder bash -lc "cat >/tmp/_grants.sql <<'SQL'
+ALTER DATABASE scdtgeosf OWNER TO seiscomp;
+ALTER SCHEMA public OWNER TO seiscomp;
+GRANT CONNECT, TEMP ON DATABASE scdtgeosf TO seiscomp;
+GRANT USAGE ON SCHEMA public TO seiscomp;
+GRANT ALL ON ALL TABLES    IN SCHEMA public TO seiscomp;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO seiscomp;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO seiscomp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES    TO seiscomp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO seiscomp;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO seiscomp;
+SQL
+psql -v ON_ERROR_STOP=1 -d scdtgeosf -f /tmp/_grants.sql && rm -f /tmp/_grants.sql"
+else
+  echo "[warn] Role 'seiscomp' not found; skipping grants. (Did the image seed the DB?)"
+fi
+
+echo "[init] Checking PostgreSQL socket and version…"
+if docker exec dtgeofinder bash -lc 'ls -l /var/run/postgresql/.s.PGSQL.5432' >/dev/null 2>&1; then
+  docker exec -u postgres dtgeofinder psql -tAc "SELECT version();" || true
+else
+  echo "[warn] No postgres socket at /var/run/postgresql/.s.PGSQL.5432";
+fi
+
+echo "[init] Verifying SeisComP database exists…"
+if docker exec -u postgres dtgeofinder psql -tAc "SELECT 1 FROM pg_database WHERE datname='scdtgeosf'" | grep -q 1; then
+  echo "[init] Database 'scdtgeosf' is present.";
+else
+  echo "[warn] Database 'scdtgeosf' not found. Did the image seed the schema?";
+fi
 
 echo "Container 'dtgeofinder' is running in the background."
 # View logs just in case
