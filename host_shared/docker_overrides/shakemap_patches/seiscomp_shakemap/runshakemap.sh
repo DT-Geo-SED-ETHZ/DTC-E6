@@ -18,7 +18,8 @@ echo "[INFO] runshakemap.sh was called at $(date)" >> "$LOGFILE"
 echo "[INFO] Triggering delayed ShakeMap Python module with args: $@" >> "$LOGFILE"
 
 # Capture all Python output to the same file
-"$PYTHON" "$SCRIPT" "$@" >> "$LOGFILE" 2>&1 &
-disown
-exit 0
+# "$PYTHON" "$SCRIPT" "$@" >> "$LOGFILE" 2>&1 &
+# disown
+# exit 0
 
+setsid -f "$PYTHON" "$SCRIPT" "$@" >>"$LOGFILE" 2>&1
