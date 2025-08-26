@@ -124,10 +124,11 @@ Two playback workflows are supported. Both create outputs on the host (see above
 1. Enter the container and run the helper script:
    ```bash
    docker exec -it dtgeofinder bash
-   /home/sysop/host_shared/playback.bash
+   cd /home/sysop/host_shared/
+   bash playback.bash
    ```
 
-   This script will trigger data streaming as if it is in real-time. We have placed sample data and station inventory under `wf1_playback/test1/` for Mw6.5 Norcia earthquake (https://terremoti.ingv.it/en/event/8863681). The waveform data is a subset of actually avaliable data due to size limitations.
+   This script will trigger data streaming as if it is in real-time. We have placed sample data and station inventory under `wf1_playback/test1/` for the Mw6.5 Norcia earthquake (https://terremoti.ingv.it/en/event/8863681). The waveforms are a subset of actually avaliable data due to size limitations.
 
 2. **First run note:** SeisComP may hang while initializing its system. If it appears stuck, press `Ctrl+C`, terminate the lingering process, and re-run the script. Subsequent runs should be fine. Also, check `/home/sysop/.seiscomp/log/scfditaly.log`. If you consistently see repeating `too few stations` messages, interrupt the script and re-run.
 
