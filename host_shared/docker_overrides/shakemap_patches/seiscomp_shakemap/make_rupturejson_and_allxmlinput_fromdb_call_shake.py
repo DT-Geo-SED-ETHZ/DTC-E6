@@ -49,7 +49,7 @@ HOST = "localhost"
 PW = "aoz54dtgeosf"
 PORT = "5432"
 
-OUTPUT_DIR = '/home/sysop/.seiscomp/log/shakemaps'
+OUTPUT_DIR = '/home/sysop/shakemap_profiles/default/data/' # '/home/sysop/.seiscomp/log/shakemaps'
 SHAKEMAP_CONFIG_DIR = '/home/sysop/shakemap_profiles/default/install/config'
 GEOLOCATOR = Nominatim(user_agent="sm")
 
@@ -341,7 +341,7 @@ def create_station_xml(station_data, event_id):
     	</station>
     	'''
     	# Append the station entry to the list
-    	stations_data.append(station_str)
+        stations_data.append(station_str)
 
     # Join all station data into a single string
     stations_str = ''.join(stations_data)
@@ -476,8 +476,9 @@ def main():
         logging.info(f"Launching ShakeMap calculations for {event_id}")
         subprocess.call([
             # "/home/sysop/miniconda/envs/shakemap/bin/shake", "-d", event_id, "select", "assemble",
+            #  "-c", "dtgeosf-test", "model", "info", "contour", "mapping", "transfer_email", "stations", "gridxml"
             "shake", "-d", event_id, "select", "assemble",
-            "-c", "dtgeosf-test", "model", "info", "contour", "mapping", "transfer_email", "stations", "gridxml"
+            "-c", "default", "model", "info", "contour", "mapping", "stations", "gridxml"
         ])
  
         # Restore original config files

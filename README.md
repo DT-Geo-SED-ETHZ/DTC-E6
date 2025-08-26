@@ -127,7 +127,9 @@ Two playback workflows are supported. Both create outputs on the host (see above
    /home/sysop/host_shared/playback.bash
    ```
 
-2. **First run note:** SeisComP may hang while initializing its system. If it appears stuck, press `Ctrl+C`, terminate the lingering process, and re-run the script. Subsequent runs should be fine.
+   This script will trigger data streaming as if it is in real-time. We have placed sample data and station inventory under `wf1_playback/test1/` for Mw6.5 Norcia earthquake (https://terremoti.ingv.it/en/event/8863681). The waveform data is a subset of actually avaliable data due to size limitations.
+
+2. **First run note:** SeisComP may hang while initializing its system. If it appears stuck, press `Ctrl+C`, terminate the lingering process, and re-run the script. Subsequent runs should be fine. Also, check `/home/sysop/.seiscomp/log/scfditaly.log`. If you consistently see repeating `too few stations` messages, interrupt the script and re-run.
 
 3. During playback, FinDer and ShakeMap will trigger automatically.
    - Outputs: `host_shared/docker-output/FinDer-output/`, `host_shared/docker-output/shakemap/`
@@ -139,10 +141,10 @@ Two playback workflows are supported. Both create outputs on the host (see above
    ```bash
    docker exec -it dtgeofinder bash
    cd /home/sysop/pyfinder/pyfinder
-   python3.9 playback.py
+   python3.9 playback.py --event-id 20161030_0000029
    ```
 
-   > **Note:** If you wait long enough, PyFinder will submit all pre-scheduled update times into the database and follow them up. This does not change the final outcome since the playback emulates real-time data flow. Otherwise, feel free to break the process with `CTRL+C`
+   > **Note:** If you wait long enough, PyFinder will submit all pre-scheduled update times into the database and follow them up. This does not change the final outcome since the playback emulates real-time data flow. Otherwise, feel free to break the process with `CTRL+C`. If you don't use `--event-id`, PyFinder will submit jobs for all predefined events in `playback.py`.
 
 2. Outputs appear in `host_shared/docker-output/shakemap/`.
 

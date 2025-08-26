@@ -227,6 +227,34 @@ else
     echo "WARNING: Patch source folder not found: $PATCH_SRC"
 fi
 
+# where the host volume is mounted inside the container
+SRC_TGZ="/home/sysop/host_shared/shakemap_config.tgz"
+# where ShakeMap expects the profile inside the container
+DST_BASE="/home/sysop/shakemap_profiles/default/install"
+DST_CFG="${DST_BASE}/config"
+
+if [[ -f "$SRC_TGZ" ]]; then
+  echo "[shakemap-config] Installing regional config from $SRC_TGZ"
+  mkdir -p "$DST_BASE"
+
+  if [[ -d "$DST_CFG" ]]; then
+    # If not backed-up before, back-up
+    if [ ! -d "${DST_CFG}.bak" ]; then
+      echo "[shakemap-config] Backing up existing config to ${DST_CFG}.bak"
+      mv "$DST_CFG" "${DST_CFG}.bak"
+    fi
+  fi
+
+  tar -xzf "$SRC_TGZ" -C "$DST_BASE"
+  chown -R sysop:sysop "$DST_BASE"
+  echo "[shakemap-config] Installed to $DST_CFG"
+else
+  echo "[shakemap-config] Skipped: $SRC_TGZ not found"
+fi
+
+# Copy layers
+cp shakemap_wkt/*.wkt "$DST_BASE/data/layers/" || true
+
 # Restart scalert to make sure it collected its configuration changes
 seiscomp restart scalert || true
 

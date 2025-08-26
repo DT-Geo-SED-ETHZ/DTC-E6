@@ -150,5 +150,7 @@ USER sysop
 # Install python packages
 RUN python3.9 -m pip install psycopg2 xmltodict filelock pandas geopandas geojson shapely tornado
 
+# Regional shakemap configuration files
+
 # Clean-up
 RUN rm -rf /home/sysop/.cache/pip
