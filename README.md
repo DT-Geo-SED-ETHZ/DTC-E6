@@ -132,7 +132,7 @@ Two playback workflows are supported. Both create outputs on the host (see above
 
 2. **First run note:** SeisComP may hang while initializing its system. If it appears stuck, press `Ctrl+C`, terminate the lingering process, and re-run the script. Subsequent runs should be fine. Also, check `/home/sysop/.seiscomp/log/scfditaly.log`. If you consistently see repeating `too few stations` messages, interrupt the script and re-run.
 
-3. During playback, FinDer and ShakeMap will trigger automatically.
+3. During playback, FinDer and ShakeMap will trigger automatically. There should be products created for 5-60 s after the trigger.
    - Outputs: `host_shared/docker-output/FinDer-output/`, `host_shared/docker-output/shakemap/`
    - Logs: `host_shared/.seiscomp_log/`
 

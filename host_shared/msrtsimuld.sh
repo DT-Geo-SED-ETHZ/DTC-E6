@@ -28,6 +28,17 @@ if [ -z "$RAW_MSEED" ]; then
   exit 2
 fi
 
+# Make sure output folders exist
+SM_DATA_ROOT="/home/sysop/shakemap_profiles/default/data"
+SM_LOG_ROOT="/home/sysop/.seiscomp/log/shakemaps"
+FINDER_ROOT="/home/sysop/.seiscomp/FinDer-output"
+
+for d in "$SM_DATA_ROOT" "$SM_LOG_ROOT" "$FINDER_ROOT"; do
+  [ -d "$d" ] || { echo "[guard] mkdir $d"; mkdir -p "$d"; }
+  touch "$d/.w" || { echo "[guard] not writable: $d"; exit 1; }
+  rm -f "$d/.w"
+done
+
 # ---- Sanity ----
 command -v "$PY" >/dev/null || { echo "ERROR: $PY not found" >&2; exit 1; }
 [ -r "$RAW_MSEED" ] || { echo "ERROR: raw MiniSEED not found at $RAW_MSEED" >&2; exit 1; }

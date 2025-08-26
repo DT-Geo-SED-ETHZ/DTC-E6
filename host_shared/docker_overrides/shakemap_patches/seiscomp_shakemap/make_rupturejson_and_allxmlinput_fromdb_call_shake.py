@@ -332,7 +332,7 @@ def create_station_xml(station_data, event_id):
     # Iterate through all rows returned by the cursor (database query results)
     for station in station_data:
         # Format each station entry using f-string for cleaner code
-    	station_str = f'''
+        station_str = f'''
     	<station code="{station[4]}" name="{station[5]}" insttype="{station[6]}" lat="{station[7]}" lon="{station[8]}"
                	source="{station[9]}" commtype="DIG" netid="{station[10]}" loc="{station[5]}">
         	<comp name="{station[6]}N">
