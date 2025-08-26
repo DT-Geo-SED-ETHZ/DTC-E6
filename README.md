@@ -145,27 +145,27 @@ Two playback workflows are supported. Both create outputs on the host (see above
    python3.9 playback.py --event-id 20161030_0000029
    ```
 
-   > **Note:** If you wait long enough, PyFinder will submit all pre-scheduled update times into the database and follow them up. This does not change the final outcome since the playback emulates real-time data flow. Otherwise, feel free to break the process with `CTRL+C`. If you don't use `--event-id`, PyFinder will submit jobs for all predefined events in `playback.py`.
+   > **Note:** PyFinder follows RRSM update schedule from 5 minutes to 48 hours after an earthquake. If you wait long enough, it will submit all pre-scheduled update times into the database and follow them up. This does not change the final outcome since the playback emulates real-time data flow. Otherwise, feel free to break the process with `CTRL+C` after first iteration is completed. If you don't use `--event-id`, PyFinder will submit jobs for all predefined events in `playback.py`.
 
-2. Outputs appear in `host_shared/docker-output/shakemap/`.
+2. Outputs appear in `host_shared/docker-output/shakemap/` and `host_shared/docker-output/PyFinder-output`. You can tell apart PyFinder shakemap solutions by its name `<event-id><scheduled iteration>`, e.g. `20161030_0000029_t00000`
 
 ---
 
 ## Logs & Debugging
 
-- All runtime logs (SeisComP, FinDer, ShakeMap) are under:
+- All runtime SeisComp logs are under:
   ```
   host_shared/.seiscomp_log/
   ```
 - Tail a log in real time:
   ```bash
-  docker exec -it dtgeofinder bash -lc "tail -n 200 -f /home/sysop/.seiscomp/log/finder.log"
+  docker exec -it dtgeofinder bash -lc "tail -n 200 -f /home/sysop/.seiscomp/log/scfditaly.log"
   ```
 - Restart a SeisComP module inside the container:
   ```bash
-  docker exec -it dtgeofinder bash -lc "seiscomp restart <module>"
+  docker exec -it dtgeofinder bash -lc "/opt/seiscomp/bin/seiscomp restart <module>"
   ```
-- If you interrupted a script and left zombies, the container uses `--init`, but you can also clean up manually inside the container:
+- If you interrupted a script and left zombies, the container is always started fresh when use `docker_run.sh`, but you can also clean up manually inside the container:
   ```bash
   pkill -f spawn_main || true
   ```
