@@ -148,6 +148,7 @@ Two playback workflows are supported. Both create outputs on the host (see above
    > **Note:** PyFinder follows RRSM update schedule from 5 minutes to 48 hours after an earthquake. If you wait long enough, it will submit all pre-scheduled update times into the database and follow them up. This does not change the final outcome since the playback emulates real-time data flow. Otherwise, feel free to break the process with `CTRL+C` after first iteration is completed. If you don't use `--event-id`, PyFinder will submit jobs for all predefined events in `playback.py`.
 
 2. Outputs appear in `host_shared/docker-output/shakemap/` and `host_shared/docker-output/PyFinder-output`. You can tell apart PyFinder shakemap solutions by its name `<event-id><scheduled iteration>`, e.g. `20161030_0000029_t00000`
+Output files and SeisComp logs can be collected from the host side from the mounted volumes. No need to copy from the container.
 
 ---
 
@@ -196,6 +197,5 @@ SeisComP-config/
 ## Notes & Licensing
 
 - **FinDer** is **not open-source**. The image includes it for internal evaluation; do not redistribute binaries.
-- Outputs are always collected on the host via mounted volumes for reproducibility and archival.
+- See [LICENSE](./LICENSE) and [DISCLAIMER](./DISCLAIMER.md) for terms and exceptions.
 
-If you have questions or improvements, open an issue or PR.
