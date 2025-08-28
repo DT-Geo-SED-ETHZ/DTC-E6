@@ -125,7 +125,7 @@ Two playback workflows are supported. Both create outputs on the host (see above
    ```bash
    docker exec -it dtgeofinder bash
    cd /home/sysop/host_shared/
-   bash playback.bash
+   bash playback.sh
    ```
 
    This script will trigger data streaming as if it is in real-time. We have placed sample data and station inventory under `wf1_playback/test1/` for the Mw6.5 Norcia earthquake (https://terremoti.ingv.it/en/event/8863681). The waveforms are a subset of actually avaliable data due to size limitations.
