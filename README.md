@@ -180,7 +180,7 @@ SeisComP-config/
 ├─ docker_build.sh                   # OS-smart build helper (buildx on Apple Silicon)
 ├─ docker_run.sh                     # Start helper; sets up volumes and starts container
 ├─ host_shared/
-│  ├─ playback.bash                  # WF1 helper (SeisComP playback)
+│  ├─ playback.sh                    # WF1 helper (SeisComP playback)
 │  ├─ post_start_setup.sh            # Manual post-start setup script (run inside container after start)
 │  ├─ docker-output/
 │  │  ├─ FinDer-output/              # FinDer results (host)
