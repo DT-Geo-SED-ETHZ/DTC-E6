@@ -1,10 +1,16 @@
-# dtgeofinder: SeisComP + FinDer + ShakeMap + PyFinder (Docker)
+# DT-GEO / DTC-E6: dtgeofinder (Dockerized)
 
-This repository provides a Dockerized environment to run **SeisComP FinDer**, **ShakeMap**, and **PyFinder** for EEW workflows. It supports fast local testing with waveform **playbacks**, and collects all outputs on the host for easy inspection.
+[![Docker](https://img.shields.io/badge/docker-ready-blue)](#)
+[![License](https://img.shields.io/badge/license-see%20LICENSE-green)](./LICENSE)
+
+**Authors:** Savas Ceylan, Johannes Kemper, Frederick Massin, [Maren Boese](mailto:maren.boese@sed.ethz.ch)
+
+This repository provides a Dockerized environment to run **SeisComP**, **FinDer**, **ShakeMap**, and **PyFinder** for earthquake early warning (EEW) workflows of **DTC-E6**. It supports fast local testing with waveform **playbacks**, and collects all outputs on the host for easy inspection.
 
 ---
 
 ## Contents
+- [Related resources](#related-resources)
 - [Requirements](#requirements)
 - [Quickstart](#quickstart)
 - [Build](#build)
@@ -15,10 +21,13 @@ This repository provides a Dockerized environment to run **SeisComP FinDer**, **
   - [WF2: PyFinder Playback](#wf2-pyfinder-playback)
 - [Logs & Debugging](#logs--debugging)
 - [Repo Structure](#repo-structure)
-- [Troubleshooting](#troubleshooting)
 - [Notes & Licensing](#notes--licensing)
 
 ---
+
+## Related resources  
+- [DT-GEO project website](https://dtgeo.eu)  
+- [Deliverable D7.2: Final definition of requirements on specifications DTC-E](https://digital.csic.es/handle/10261/381853)
 
 ## Requirements
 - **Docker** (Linux/macOS; Windows via WSL2 also works)
